@@ -9,15 +9,15 @@ from tqdm import tqdm
 
 
 # Config logging
-logging.basicConfig(format="%(levelname)s - %(message)s", level=logging.INFO)
+logging.basicConfig(format="%(levelname)s - %(message)s", level=logging.DEBUG)
 
 
 # Add parser
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--img_dir', default='/content/drive/MyDrive/Data/train', type=str)
+parser.add_argument('--img_dir', default='/content/drive/MyDrive/Data/test', type=str)
 
-parser.add_argument('--out_dir', default='/content/drive/MyDrive/BrainTumorClassification/train', type=str)
+parser.add_argument('--out_dir', default='/content/drive/MyDrive/BrainTumorClassification/test', type=str)
 
 def shape(s):
     try:
@@ -34,8 +34,9 @@ args = parser.parse_args()
 
 
 # Codes start here
-def convert_to_pkl(img_dir: str, output_dir: str, img_shape: tuple:, output_shape: tuple) -> None:
+def convert_to_pkl(img_dir: str, output_dir: str, img_shape: tuple, output_shape: tuple) -> None:
     assert os.path.exists(img_dir), "{} does not exist.".format(img_dir)
+    C, H, W = output_shape
 
     try:
         assert os.path.exists(output_dir)
@@ -50,6 +51,9 @@ def convert_to_pkl(img_dir: str, output_dir: str, img_shape: tuple:, output_shap
 
     for case_dir in tqdm(cases):
         images = load_case(case_dir, img_shape, output_shape)
+        assert images.shape == (4, C, H, W),\
+            "Case {0} has incorrect shape {1}, which is different from {2}"\
+            .format(case_dir, images.shape, (4, C, H, W))
         save_case(images, case_dir, output_dir)
 
     logging.info('Preprocessing completed.')
@@ -67,8 +71,11 @@ def load_case(case_dir: str, img_shape: tuple, output_shape: tuple) -> np.ndarra
     images = np.array([], dtype=np.uint8).reshape(0, C, H, W)
 
     for modal in modals:
-        modal_path = os.path.join(case_dir, modals)
+        modal_path = os.path.join(case_dir, modal)
         modal_img = load_modal(modal_path, img_shape, output_shape)
+        assert modal_img.shape == (1, C, H, W),\
+            "Modal {0} has incorrect shape {1}, which is different from {2}"\
+            .format(modal_path, modal_img.shape, (1, C, H, W))
         np.concatenate((images, modal_img), axis = 0)
 
     return images
@@ -83,11 +90,18 @@ def save_case(images: np.ndarray, case_dir: str, output_dir: str) -> None:
 
 
 def load_modal(path: str, img_shape: tuple, output_shape: tuple) -> np.ndarray:
+    C, H, W = img_shape
+
     if not os.path.exists(path) or len(get_files(path)) == 0:
         logging.debug('{} does not contain images.'.format(path))
-        return np.zeros(output_shape, dtype=np.uint8)
+        return np.zeros(output_shape, dtype=np.uint8)[:,]
 
     images = load_images(path, img_shape)
+
+    assert len(images.shape) == 3,\
+        "Images {} must have shape of length 3".format(path)
+
+    logging.debug("Images {0} has shape {1}".format(path, images.shape))
     skTrans.resize(images, output_shape, order=1, preserve_range=True)
 
     return images[None, :]
@@ -97,12 +111,31 @@ def load_images(path: str, img_shape: tuple) -> np.ndarray:
     C, H, W = img_shape
 
     imgs = np.array([], dtype=np.uint8).reshape(0, H, W)
-    img_paths = glob(os.path.join(path, '*.png'))
+    img_paths = glob.glob(os.path.join(path, '*.png'))
     img_paths = sorted(img_paths, key = lambda x: get_index(x))
 
     for img_path in img_paths:
         img = plt.imread(img_path)
+
+        assert (W, H) == img.shape, \
+            "{0} has size {1}, which is different from {2}".format(img_path, img.shape, (W, H))
+
+        img = transform(img)
+        np.concatenate((imgs, img), axis = 0)
+        logging.debug('Loaded {0} - Current shape {1}'.format(img_path, imgs.shape))
+
     return imgs
+
+
+def get_index(path):
+    start = path.rfind('-')
+    end = path.rfind('.png')
+    return int(path[start+1: end])
+
+
+def transform(img: np.ndarray) -> np.ndarray:
+    output = (img * 255).astype(np.uint8)
+    return output[None, :]
 
 
 if __name__ == "__main__":
