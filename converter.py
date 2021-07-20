@@ -94,7 +94,7 @@ def load_modal(path: str, img_shape: tuple, output_shape: tuple) -> np.ndarray:
 
     if not os.path.exists(path) or len(get_filenames(path)) == 0:
         logging.info('{} does not contain images, paddad by zeros'.format(path))
-        return np.zeros(output_shape, dtype=np.uint8)[:,]
+        return np.zeros(output_shape, dtype=np.uint8)[None, :]
 
     images = load_images(path, img_shape)
 
