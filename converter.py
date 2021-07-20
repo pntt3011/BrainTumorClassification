@@ -35,6 +35,7 @@ args = parser.parse_args()
 def convert_to_pkl(img_dir: str, output_dir: str, img_shape: tuple, output_shape: tuple) -> None:
     assert os.path.exists(img_dir), "{} does not exist.".format(img_dir)
     C, H, W = output_shape
+    logging.info('Output shape: {}'.format(output_shape))
 
     try:
         assert os.path.exists(output_dir)
