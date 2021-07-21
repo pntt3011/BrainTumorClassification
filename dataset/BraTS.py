@@ -8,15 +8,15 @@ import torchvision.transforms as T
 class RandomFlip(object):
     def __call__(self, sample: torch.Tensor) -> torch.Tensor:
         if random.random() < 0.5:
-            sample = torch.flip(sample, dims=(0,2))
+            sample = torch.flip(sample, dims=(-3, -1))
         return sample
 
 
 class RandomNoise(object):
     def __call__(self, image: torch.Tensor, factor=0.1) -> torch.Tensor:
         _, C, H, W = image.shape
-        scale_factor = 2 * factor * torch.rand(1, 1, H, W) + 1.0 - factor
-        shift_factor = 2 * factor * torch.rand(1, 1, H, W) - factor
+        scale_factor = 2 * factor * torch.rand(1, C, H, W) + 1.0 - factor
+        shift_factor = 2 * factor * torch.rand(1, C, H, W) - factor
         image = image * scale_factor + shift_factor
         return image
 
