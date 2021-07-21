@@ -34,7 +34,7 @@ args = parser.parse_args()
 # Codes start here
 def convert_to_pkl(img_dir: str, output_dir: str, img_shape: tuple, output_shape: tuple) -> None:
     assert os.path.exists(img_dir), "{} does not exist.".format(img_dir)
-    C, H, W = output_shape
+    Co, Ho, Wo = output_shape
     logging.info('Output shape: {}'.format(output_shape))
 
     try:
@@ -52,14 +52,17 @@ def convert_to_pkl(img_dir: str, output_dir: str, img_shape: tuple, output_shape
     for it in range(n):
         case_dir = cases[it]
         images = load_case(case_dir, img_shape, output_shape)
-        assert images.shape == (4, C, H, W),\
+        assert images.shape == (4, Co, Ho, Wo),\
             "Case {0} has incorrect shape {1}, which is different from {2}"\
-            .format(case_dir, images.shape, (4, C, H, W))
+            .format(case_dir, images.shape, (4, Co, Ho, Wo))
 
         save_case(images, case_dir, output_dir)
-        logging.info("[{1}/{2}] Saved {0}".format(output_dir, it + 1, n))
+        logging.info("[{1}/{2}] Saved {0}".format(
+            os.path.join(output_dir, extract_folder_name(case_dir)), 
+            it + 1, n
+        ))
 
-    logging.info('Preprocessing completed.')
+    logging.info('Converting completed.')
 
 
 def get_filenames(path: str) -> list:
@@ -69,16 +72,16 @@ def get_filenames(path: str) -> list:
 
 def load_case(case_dir: str, img_shape: tuple, output_shape: tuple) -> np.ndarray:
     modals = ['FLAIR', 'T1w', 'T1wCE', 'T2w']
-    C, H, W = output_shape
+    Co, Ho, Wo = output_shape
 
-    images = np.array([], dtype=np.uint8).reshape(0, C, H, W)
+    images = np.array([], dtype=np.uint8).reshape(0, Co, Ho, Wo)
 
     for modal in modals:
         modal_path = os.path.join(case_dir, modal)
         modal_img = load_modal(modal_path, img_shape, output_shape)
-        assert modal_img.shape == (1, C, H, W),\
+        assert modal_img.shape == (1, Co, Ho, Wo),\
             "Modal {0} has incorrect shape {1}, which is different from {2}"\
-            .format(modal_path, modal_img.shape, (1, C, H, W))
+            .format(modal_path, modal_img.shape, (1, Co, Ho, Wo))
         images = np.concatenate((images, modal_img), axis = 0)
 
     return images
@@ -91,8 +94,6 @@ def save_case(images: np.ndarray, case_dir: str, output_dir: str) -> None:
 
 
 def load_modal(path: str, img_shape: tuple, output_shape: tuple) -> np.ndarray:
-    C, H, W = img_shape
-
     if not os.path.exists(path) or len(get_filenames(path)) == 0:
         logging.info('{} does not contain images, paddad by zeros'.format(path))
         return np.zeros(output_shape, dtype=np.uint8)[None, :]
@@ -108,17 +109,19 @@ def load_modal(path: str, img_shape: tuple, output_shape: tuple) -> np.ndarray:
 
 
 def load_images(path: str, img_shape: tuple) -> np.ndarray:
-    C, H, W = img_shape
+    Ci, Hi, Wi = img_shape
 
-    imgs = np.array([], dtype=np.uint8).reshape(0, H, W)
+    imgs = np.array([], dtype=np.uint8).reshape(0, Hi, Wi)
     img_paths = glob.glob(os.path.join(path, '*.png'))
     img_paths = sorted(img_paths, key = lambda x: get_index(x))
 
     for img_path in img_paths:
         img = plt.imread(img_path)
 
-        assert (W, H) == img.shape, \
-            "{0} has size {1}, which is different from {2}".format(img_path, img.shape, (W, H))
+        if (Hi, Wi) != img.shape:
+            img = skTrans.resize(img, (Hi, Wi), order=1, preserve_range=True)
+        assert (Hi, Wi) == img.shape, \
+            "{0} has size {1}, which is different from {2}".format(img_path, img.shape, (Wi, Hi))
 
         img = transform(img)
         imgs = np.concatenate((imgs, img), axis = 0)
