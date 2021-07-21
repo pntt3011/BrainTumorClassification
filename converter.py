@@ -90,7 +90,9 @@ def load_case(case_dir: str, img_shape: tuple, output_shape: tuple) -> np.ndarra
 def save_case(images: np.ndarray, case_dir: str, output_dir: str) -> None:
     output_name = extract_folder_name(case_dir) + '.pkl.bz2'
     output_path = os.path.join(output_dir, output_name)
-    pickle.dump(images, bz2.open(output_path, 'wb'))
+    
+    with bz2.open(output_path, 'wb') as f:
+        pickle.dump(images, f)
 
 
 def load_modal(path: str, img_shape: tuple, output_shape: tuple) -> np.ndarray:
