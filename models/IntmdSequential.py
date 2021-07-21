@@ -2,7 +2,7 @@ import torch.nn as nn
 
 
 class IntermediateSequential(nn.Sequential):
-    def __init__(self, *args, return_intermediate=True):
+    def __init__(self, *args, return_intermediate=False):
         super().__init__(*args)
         self.return_intermediate = return_intermediate
 

@@ -1,9 +1,8 @@
 import torch
 import torch.nn as nn
-from models.TransBTS.Transformer import TransformerModel
-from models.TransBTS.PositionalEncoding import FixedPositionalEncoding,LearnedPositionalEncoding
-from models.TransBTS.Unet_skipconnection import Unet
-from pytorch_model_summary import summary
+from models.Transformer import TransformerModel
+from models.PositionalEncoding import PositionalEncoding
+from models.Unet_Encoder import Unet
 
 
 class TransformerBTS(nn.Module):
@@ -41,12 +40,8 @@ class TransformerBTS(nn.Module):
 
         self.linear_encoding = nn.Linear(self.flatten_dim, self.embedding_dim)
         if positional_encoding_type == "learned":
-            self.position_encoding = LearnedPositionalEncoding(
+            self.position_encoding = PositionalEncoding(
                 self.seq_length, self.embedding_dim, self.seq_length
-            )
-        elif positional_encoding_type == "fixed":
-            self.position_encoding = FixedPositionalEncoding(
-                self.embedding_dim,
             )
 
         self.pe_dropout = nn.Dropout(p=self.dropout_rate)
@@ -105,7 +100,7 @@ class TransformerBTS(nn.Module):
         x = self.pe_dropout(x)
 
         # apply transformer
-        x, intmd_x = self.transformer(x)
+        x = self.transformer(x)
         x = self.pre_head_ln(x)
         x = x.permute(0,2,1).contiguous()
 
@@ -325,6 +320,7 @@ if __name__ == '__main__':
         _, model = TransBTS(_conv_repr=True, _pe_type="learned")
         model.cuda()
         # show output shape and hierarchical view of net
-        print(summary(model, x, show_input=True))
+        y = model(x)
+        print(y.shape)
 
 
