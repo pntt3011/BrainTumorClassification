@@ -6,17 +6,17 @@ import numpy as np
 from torchvision.transforms import transforms
 import pickle
 import bz2
+import pandas as pd
 from scipy import ndimage
 
-#DÒNG NÀY ĐỂ TEST GIT
 
 def pkload(fname: str) -> np.ndarray:
     with bz2.open(fname, 'rb') as f:
         return pickle.load(f)
 
 
-class MaxMinNormalization(object):
-    def __call__(self, sample):
+class MinMaxNormalization(object):
+    def __call__(self, sample: dict) -> dict:
         image = sample['image']
         label = sample['label']
         Max = np.max(image)
@@ -26,24 +26,32 @@ class MaxMinNormalization(object):
         return {'image': image, 'label': label}
 
 
-class Random_Flip(object):
-    def __call__(self, sample):
+class ZScoreNormalization(object):
+    def __call__(self, sample: dict) -> dict:
         image = sample['image']
         label = sample['label']
-        if random.random() < 0.5:
-            image = np.flip(image, 0)
-            label = np.flip(label, 0)
-        if random.random() < 0.5:
-            image = np.flip(image, 1)
-            label = np.flip(label, 1)
-        if random.random() < 0.5:
-            image = np.flip(image, 2)
-            label = np.flip(label, 2)
+        Mean = np.mean(image)
+        Std = np.std(image)
+        image = (image - mean) / Std
 
         return {'image': image, 'label': label}
 
 
-class Random_intencity_shift(object):
+class Random_Flip(object):
+    def __call__(self, sample: dict) -> dict:
+        image = sample['image']
+        label = sample['label']
+        if random.random() < 0.5:
+            image = np.flip(image, 0)
+        if random.random() < 0.5:
+            image = np.flip(image, 1)
+        if random.random() < 0.5:
+            image = np.flip(image, 2)
+
+        return {'image': image, 'label': label}
+
+
+class Random_intensity_shift(object):
     def __call__(self, sample, factor=0.1):
         image = sample['image']
         label = sample['label']
@@ -56,32 +64,9 @@ class Random_intencity_shift(object):
         return {'image': image, 'label': label}
 
 
-class Random_rotate(object):
-    def __call__(self, sample):
-        image = sample['image']
-        label = sample['label']
-
-        angle = round(np.random.uniform(-10, 10), 2)
-        image = ndimage.rotate(image, angle, axes=(0, 1), reshape=False)
-        label = ndimage.rotate(label, angle, axes=(0, 1), reshape=False)
-
-        return {'image': image, 'label': label}
-
-
-class Pad(object):
-    def __call__(self, sample):
-        image = sample['image']
-        label = sample['label']
-
-        image = np.pad(image, ((0, 0), (0, 0), (0, 5), (0, 0)), mode='constant')
-        label = np.pad(label, ((0, 0), (0, 0), (0, 5)), mode='constant')
-        return {'image': image, 'label': label}
-    #(240,240,155)>(240,240,160)
-
-
 class ToTensor(object):
     """Convert ndarrays in sample to Tensors."""
-    def __call__(self, sample):
+    def __call__(self, sample: dict) -> dict:
         image = sample['image']
         image = np.ascontiguousarray(image.transpose(3, 0, 1, 2))
         label = sample['label']
@@ -95,9 +80,6 @@ class ToTensor(object):
 
 def transform(sample):
     trans = transforms.Compose([
-        Pad(),
-        # Random_rotate(),  # time-consuming
-        Random_Crop(),
         Random_Flip(),
         Random_intencity_shift(),
         ToTensor()
@@ -117,7 +99,7 @@ def transform_valid(sample):
 
 
 class BraTS(Dataset):
-    def __init__(self, list_file, root='', mode='train'):
+    def __init__(self, data_dir: str, label_file: str, root='', mode='train'):
         self.lines = []
         paths, names = [], []
         with open(list_file) as f:
