@@ -13,7 +13,7 @@ class RandomFlip(object):
 
 
 class RandomNoise(object):
-    def __call__(self, image, factor=0.1):
+    def __call__(self, image: torch.Tensor, factor=0.1) -> torch.Tensor:
         _, C, H, W = image.shape
         scale_factor = 2 * factor * torch.rand(1, 1, H, W) + 1.0 - factor
         shift_factor = 2 * factor * torch.rand(1, 1, H, W) - factor
