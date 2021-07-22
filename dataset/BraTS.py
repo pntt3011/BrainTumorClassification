@@ -59,7 +59,7 @@ class BraTS(Dataset):
         if self.mode == 'train':
             data = self.files[idx]
             path = os.path.join(self.data_dir, '{0:05d}.pkl.bz2'.format(data[0]))
-            label = data[1]
+            label = torch.tensor([[data[1]]])
             case = self.__load_pkl(path)
             return case, label
         

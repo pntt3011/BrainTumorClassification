@@ -1,7 +1,6 @@
 import os
 import urllib
 import torch
-from torch.utils import model_zoo
 
 
 class CheckpointIO(object):

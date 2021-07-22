@@ -291,7 +291,7 @@ def TransBTS(_conv_repr=True, _pe_type="learned"):
         positional_encoding_type=_pe_type,
     )
 
-    return aux_layers, model
+    return model
 
 
 if __name__ == '__main__':

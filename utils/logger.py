@@ -14,10 +14,8 @@ class Logger(object):
                  monitoring_dir=None):
         self.stats = dict()
         self.log_dir = log_dir
-        self.img_dir = img_dir
 
         utils.cond_mkdir(self.log_dir)
-        utils.cond_mkdir(self.img_dir)
 
         if not (monitoring is None or monitoring == 'none'):
             self.setup_monitoring(monitoring, monitoring_dir)
@@ -71,38 +69,6 @@ class Logger(object):
             vec = vec.data.clone().cpu().numpy()
 
         self.stats[category][k].append((it, vec))
-
-
-    def add_imgs(self, imgs, class_name, it):
-        outdir = os.path.join(self.img_dir, class_name)
-        if not os.path.exists(outdir):
-            os.makedirs(outdir)
-        outfile = os.path.join(outdir, '%08d.png' % it)
-
-        # imgs = imgs / 2 + 0.5
-        imgs = torchvision.utils.make_grid(imgs)
-        torchvision.utils.save_image(imgs.clone(), outfile, nrow=8)
-
-        if self.monitoring == 'tensorboard':
-            self.tb.add_image(class_name, imgs, global_step=it)
-
-
-    def add_figure(self, fig, class_name, it, save_img=True):
-        if save_img:
-            outdir = os.path.join(self.img_dir, class_name)
-            if not os.path.exists(outdir):
-                os.makedirs(outdir)
-            outfile = os.path.join(outdir, '%08d.png' % it)
-
-            image_hwc = utils.figure_to_image(fig)
-            imageio.imwrite(outfile, image_hwc)
-            if self.monitoring == 'tensorboard':
-                if len(image_hwc.shape) == 3:
-                    image_hwc = np.array(image_hwc[None, ...])
-                self.tb.add_images(class_name, torch.from_numpy(image_hwc), dataformats='NHWC')
-        else:
-            if self.monitoring == 'tensorboard':
-                self.tb.add_figure(class_name, fig, it)
 
 
     def add_module_param(self, module_name, module, it):
