@@ -36,9 +36,7 @@ class TransformerBTS(nn.Module):
 
         self.num_patches = int((img_dim // patch_dim) ** 3)
         self.seq_length = 1024
-        self.flatten_dim = 128 * num_channels
 
-        self.linear_encoding = nn.Linear(self.flatten_dim, self.embedding_dim)
         if positional_encoding_type == "learned":
             self.position_encoding = PositionalEncoding(
                 self.seq_length, self.embedding_dim, self.seq_length
@@ -80,21 +78,6 @@ class TransformerBTS(nn.Module):
             x = self.conv3_x(x)
             x = x.permute(0, 2, 3, 4, 1).contiguous()
             x = x.view(x.size(0), -1, self.embedding_dim)
-
-        else:
-            x = self.Unet(x)
-            x = self.bn(x)
-            x = self.relu(x)
-            x = (
-                x.unfold(2, 2, 2)
-                .unfold(3, 2, 2)
-                .unfold(4, 2, 2)
-                .contiguous()
-            )
-            x = x.view(x.size(0), x.size(1), -1, 8)
-            x = x.permute(0, 2, 3, 1).contiguous()
-            x = x.view(x.size(0), -1, self.flatten_dim)
-            x = self.linear_encoding(x)
         
         x = self.position_encoding(x)
         x = self.pe_dropout(x)
