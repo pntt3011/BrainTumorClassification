@@ -87,7 +87,7 @@ class Unet(nn.Module):
         self.EnBlock4_1 = EnBlock(in_channels=base_channels * 8)
         self.EnBlock4_2 = EnBlock(in_channels=base_channels * 8)
         self.EnBlock4_3 = EnBlock(in_channels=base_channels * 8)
-        self.EnDown4 = EnDown(in_channels=base_channels * 8, out_channels=base_channels*8)
+        self.EnBlock4_4 = EnBlock(in_channels=base_channels * 8)
 
     def forward(self, x):
         x = self.InitConv(x)       # (1, 16, 64, 256, 256)
@@ -106,7 +106,7 @@ class Unet(nn.Module):
         x = self.EnBlock4_1(x)
         x = self.EnBlock4_2(x)
         x = self.EnBlock4_3(x)
-        output = self.EnDown4(x)  # (1, 256, 4, 16, 16)
+        output = self.EnBlock4_4(x)  # (1, 128, 8, 32, 32)
 
         return output
 

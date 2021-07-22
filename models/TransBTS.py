@@ -62,7 +62,7 @@ class TransformerBTS(nn.Module):
                 128,
                 self.embedding_dim,
                 kernel_size=3,
-                stride=1,
+                stride=2,
                 padding=1
             )
 
