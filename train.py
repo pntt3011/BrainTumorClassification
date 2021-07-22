@@ -1,15 +1,19 @@
-import utils
+import utils.config
+import utils.logger
+import utils.checkpoints
+
 from dataset.BraTS import BraTS, transform
 from models.TransBTS import TransBTS
 from utils.checkpoints import CheckpointIO
 from losses import BinaryCrossEntropy
 from metrics import get_accuracy
 
-import tqdm
+import os
 import time
 import torch
 import logging
 import numpy as np
+from tqdm import tqdm
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 
@@ -42,7 +46,7 @@ def main(args):
     dataset_size = len(dataset)
     indices = list(range(dataset_size))
     split = int(np.floor(args.training.val_split * dataset_size))
-    np.random.seed(random_seed)
+    np.random.seed(42)
     np.random.shuffle(indices)
     train_indices, val_indices = indices[split:], indices[:split]
 
@@ -52,7 +56,7 @@ def main(args):
 
     train_loader = DataLoader(dataset, batch_size=args.training.batch_size,
                               sampler=train_sampler)
-    val_loader = DataLoader(dataset, batch_size=args.traing.batch_size,
+    val_loader = DataLoader(dataset, batch_size=args.training.batch_size,
                             sampler=valid_sampler)
 
     # load model
@@ -78,7 +82,7 @@ def main(args):
     epoch_idx = load_dict.get('epoch_idx', 0)
     
     # build lr scheduler
-    lr_scheduler = optim.lr_scheduler.StepLR(
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(
         optimizer,
         step_size=args.training.step_size,
         gamma=args.training.lr_annual,
@@ -99,7 +103,7 @@ def main(args):
                 
                 x = transform(case).to(device)
                 assert len(x.shape) == 5
-                target.to(device)1
+                target = target.to(device)
                 
                 predict = model(x)
                 loss = BinaryCrossEntropy(predict, target)
@@ -119,18 +123,20 @@ def main(args):
             lr_scheduler.step()
 
             # Validation
-            targets = torch.empty([0,1]).to(device)
-            predicts = torch.empty([0,1]).to(device)
+            targets = torch.empty([0, 1]).to(device)
+            predicts = torch.empty([0, 1]).to(device)
             
             for case, target in val_loader:
                 with torch.no_grad():
                     x = transform(case).to(device)
                     assert len(x.shape) == 5
-                    targets = torch.cat((targets, target), 0)
-                                         
+                    target = target.to(device)
+                    
+                    targets = torch.cat((targets, target), 0)                               
                     predict = model(x)
                     predicts = torch.cat((predicts, predict), 0)
-                    
+                
+            
             acc = get_accuracy(predicts, targets)
             logger.add('accuracy', 'val', acc, it)
             logging.info('Epoch {0}: validation accuracy {1}'.format(epoch_idx, acc))
@@ -143,4 +149,4 @@ def main(args):
 if __name__ == "__main__":
     args, unknown = utils.config.parse_args()
     config = utils.config.load_config(args, unknown)
-    main_function(config)
+    main(config)

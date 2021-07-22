@@ -5,3 +5,5 @@ numpy
 tensorboardX
 matplotlib
 scikit-image
+addict
+ PyYAML==5.1

@@ -2,8 +2,8 @@ expname: TransBTS
 device_ids: [0] # single gpu
 
 data:
-  data_dir: null
-  label: null
+  data_dir: "/content/drive/MyDrive/BrainTumorClassification/train"
+  label: "/content/drive/MyDrive/BrainTumorClassification/train_labels.csv"
   mode: "train"
 
 model:

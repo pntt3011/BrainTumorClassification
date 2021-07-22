@@ -3,6 +3,7 @@ import os, random
 import torch
 import pandas as pd
 import torchvision.transforms as T
+from torch.utils.data import Dataset
 
 
 class RandomFlip(object):
@@ -14,14 +15,14 @@ class RandomFlip(object):
 
 class RandomNoise(object):
     def __call__(self, image: torch.Tensor, factor=0.1) -> torch.Tensor:
-        _, C, H, W = image.shape
-        scale_factor = 2 * factor * torch.rand(1, C, H, W) + 1.0 - factor
-        shift_factor = 2 * factor * torch.rand(1, C, H, W) - factor
+        N, C, D, H, W = image.shape
+        scale_factor = 2 * factor * torch.rand(N, C, 1, H, W) + 1.0 - factor
+        shift_factor = 2 * factor * torch.rand(N, C, 1, H, W) - factor
         image = image * scale_factor + shift_factor
         return image
 
 
-def transform(self, sample: torch.Tensor) -> torch.Tensor:
+def transform(sample: torch.Tensor) -> torch.Tensor:
     trans = T.Compose([
         RandomFlip(),
         RandomNoise()
@@ -36,9 +37,9 @@ class BraTS(Dataset):
         self.mode = mode
 
         if self.mode == 'train':
-            assert os.path.exists(label_file) && label_file.endswith('csv'),\
+            assert os.path.exists(label_file) & label_file.endswith('csv'),\
                 'Label file does not exist or not have .CSV extension.' 
-            self.files = pd.read_csv(label_file).tolist()
+            self.files = pd.read_csv(label_file).values.tolist()
 
         else:
             self.files = self.__get_filenames(data_dir)
@@ -59,7 +60,7 @@ class BraTS(Dataset):
         if self.mode == 'train':
             data = self.files[idx]
             path = os.path.join(self.data_dir, '{0:05d}.pkl.bz2'.format(data[0]))
-            label = torch.tensor([[data[1]]])
+            label = torch.tensor([data[1]]).float()
             case = self.__load_pkl(path)
             return case, label
         

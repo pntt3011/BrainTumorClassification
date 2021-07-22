@@ -4,18 +4,17 @@ import pickle
 import imageio
 import torchvision
 import numpy as np
-
+import utils.config
 
 class Logger(object):
     def __init__(self,
                  log_dir,
-                 img_dir,
                  monitoring=None,
                  monitoring_dir=None):
         self.stats = dict()
         self.log_dir = log_dir
 
-        utils.cond_mkdir(self.log_dir)
+        utils.config.cond_mkdir(self.log_dir)
 
         if not (monitoring is None or monitoring == 'none'):
             self.setup_monitoring(monitoring, monitoring_dir)

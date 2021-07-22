@@ -27,14 +27,14 @@ def parse_args():
 
 
 def save_config(datadict, path):
-    datadict.training.ckpt_file = None
-    datadict.training.pop('exp_dir')
+    datadict['training']['ckpt_file'] = None
+    datadict['training'].pop('exp_dir')
     
     with open(path, 'w', encoding='utf8') as f:
         yaml.dump(datadict, f, default_flow_style=False)
 
 
-def load_config(args):
+def load_config(args, unknown):
     ''' overwrite seq
     cmd param >>> .yaml param
     '''
@@ -109,7 +109,7 @@ def update_config(config, unknown):
     return config
 
 
-def get_device_ids(config):
+def set_device_ids(config):
     # # device_ids: -1 will be parsed as using all available cuda device
     # # device_ids: [] will be parsed as using all available cuda device
     if (type(config.device_ids) == int and config.device_ids == -1) \
