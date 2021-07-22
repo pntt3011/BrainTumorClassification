@@ -3,16 +3,66 @@ import glob
 import yaml
 import torch
 import addict
-import shutil
-import imageio
+import logging
 import argparse
-import functools
-import numpy as np
+
+
+logging.basicConfig(format="%(levelname)s - %(message)s", level=logging.INFO)
 
 
 class ForceKeyErrorDict(addict.Dict):
     def __missing__(self, name):
         raise KeyError(name)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    
+    # must-have configs
+    parser.add_argument('--config', type=str, default=None, help='Path to config file.')
+    parser.add_argument('--load_exp', type=str, default=None, help='Directory of experiment to load.')
+
+    args, unknown = parser.parse_known_args()
+    return args, unknown
+
+
+def save_config(datadict, path):
+    datadict.training.ckpt_file = None
+    datadict.training.pop('exp_dir')
+    
+    with open(path, 'w', encoding='utf8') as f:
+        yaml.dump(datadict, f, default_flow_style=False)
+
+
+def load_config(args):
+    ''' overwrite seq
+    cmd param >>> .yaml param
+    '''
+    assert (args.config is not None) != (args.load_exp is not None),\
+           "you must specify ONLY one in 'config' or 'load_exp' "
+
+    if args.load_exp is not None:
+        assert '--expname' not in unknown,\
+               "given --expname with --load_exp will lead to unexpected behavior."
+
+        config_path = os.path.join(args.load_exp, 'config.yaml')
+        config = load_yaml(config_path, default_path=None)
+        
+        config = update_config(config, unknown)
+
+        config.training.exp_dir = args.load_exp
+        logging.ìnfo("=> Loading previous experiments in: {}".format(config.training.exp_dir))
+        
+    else:
+        config = load_yaml(args.config)
+
+        config = update_config(config, unknown)
+
+        # use the expname and log_root_dir to get the experiement directory
+        config.training.exp_dir = os.path.join(config.training.log_root_dir, config.expname)
+
+    config = set_device_ids(config)
+    return config
 
 
 def load_yaml(path, default_path=None):
@@ -31,13 +81,6 @@ def load_yaml(path, default_path=None):
         config = main_config
 
     return config
-
-
-def save_config(datadict, path):
-    datadict.training.ckpt_file = None
-    datadict.training.pop('exp_dir')
-    with open(path, 'w', encoding='utf8') as outfile:
-        yaml.dump(datadict, outfile, default_flow_style=False)
 
 
 def update_config(config, unknown):
@@ -66,54 +109,7 @@ def update_config(config, unknown):
     return config
 
 
-def cond_mkdir(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
-
-
-def create_args_parser():
-    parser = argparse.ArgumentParser()
-    # standard configs
-    parser.add_argument('--config', type=str, default=None, help='Path to config file.')
-    parser.add_argument('--load_dir', type=str, default=None, help='Directory of experiment to load.')
-    return parser
-
-
-def load_config(args, unknown, base_config_path=os.path.join('configs', 'base.yaml')):
-    ''' overwrite seq
-    command line param --over--> args.config --over--> default config yaml
-    '''
-    assert (args.config is not None) != (args.load_dir is not None), "you must specify ONLY one in 'config' or 'load_dir' "
-
-    if args.load_dir is not None:
-        assert args.config is None, "given --config will not be used when given --load_dir"
-        assert '--expname' not in unknown, "given --expname with --load_dir will lead to unexpected behavior."
-        #---------------
-        # if loading from a dir, do not use base.yaml as the default; 
-        #---------------
-        config_path = os.path.join(args.load_dir, 'config.yaml')
-        config = load_yaml(config_path, default_path=None)
-
-        # use configs given by command line to further overwrite current config
-        config = update_config(config, unknown)
-
-        # use the loading directory as the experiment path
-        config.training.exp_dir = args.load_dir
-        print("=> Loading previous experiments in: {}".format(config.training.exp_dir))
-    else:
-        #---------------
-        # if loading from a config file
-        # use base.yaml as default
-        #---------------
-        config = load_yaml(args.config, default_path=base_config_path)
-
-        # use configs given by command line to further overwrite current config
-        config = update_config(config, unknown)
-
-        # use the expname and log_root_dir to get the experiement directory
-        config.training.exp_dir = os.path.join(config.training.log_root_dir, config.expname)
-
-
+def get_device_ids(config):
     # # device_ids: -1 will be parsed as using all available cuda device
     # # device_ids: [] will be parsed as using all available cuda device
     if (type(config.device_ids) == int and config.device_ids == -1) \
@@ -127,3 +123,8 @@ def load_config(args, unknown, base_config_path=os.path.join('configs', 'base.ya
         config.device_ids = [int(m) for m in config.device_ids.split(',')]
 
     return config
+
+
+def cond_mkdir(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
