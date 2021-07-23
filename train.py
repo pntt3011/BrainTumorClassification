@@ -123,7 +123,7 @@ def main(args):
             
             for case, target in val_loader:
                 with torch.no_grad():
-                    x = transform(case).to(device)
+                    x = case.to(device)
                     assert len(x.shape) == 5
                     target = target.to(device)
                     
