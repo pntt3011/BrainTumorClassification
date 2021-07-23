@@ -89,6 +89,9 @@ def main(args):
         
         while epoch_idx < num_ep:
             pbar.update()
+
+            # Learning rate scheduler
+            adjust_learning_rate(optimizer, epoch_idx, num_ep, args.training.lr_param)
             
             for case, target in train_loader:
                 it += 1
@@ -113,9 +116,6 @@ def main(args):
                 checkpoint_io.save(
                     filename='{0:05d}.pt'.format(epoch_idx+1),
                     global_step=it, epoch_idx=epoch_idx)
-            
-            # Learning rate scheduler
-            adjust_learning_rate(optimizer, epoch_idx, num_ep, args.training.lr_param)
 
             # Validation
             targets = torch.empty([0, 1]).to(device)
