@@ -80,7 +80,7 @@ def main(args):
         ignore_keys=args.training.ckpt_ignore_keys,
         only_use_keys=args.training.ckpt_only_use_keys)
     it = load_dict.get('global_step', -1)
-    epoch_idx = load_dict.get('epoch_idx', 0)
+    epoch_idx = load_dict.get('epoch_idx', -1) + 1
 
     # start training
     num_ep = args.training.num_ep
@@ -89,16 +89,15 @@ def main(args):
         
         while epoch_idx < num_ep:
             pbar.update()
-
+            
             # Learning rate scheduler
             adjust_learning_rate(optimizer, epoch_idx, num_ep, args.training.lr_param)
-            
+
             for case, target in train_loader:
                 it += 1
                 pbar.set_postfix(it=it, ep=epoch_idx)
                 
                 x = transform(case).to(device)
-                assert len(x.shape) == 5
                 target = target.to(device)
                 
                 predict = model(x)
@@ -114,7 +113,7 @@ def main(args):
             #Save checkpoint
             if (epoch_idx + 1) % args.training.epoch_save == 0:
                 checkpoint_io.save(
-                    filename='{0:05d}.pt'.format(epoch_idx+1),
+                    filename='{0:05d}.pt'.format(epoch_idx),
                     global_step=it, epoch_idx=epoch_idx)
 
             # Validation
@@ -124,14 +123,12 @@ def main(args):
             for case, target in val_loader:
                 with torch.no_grad():
                     x = case.to(device)
-                    assert len(x.shape) == 5
                     target = target.to(device)
                     
                     targets = torch.cat((targets, target), 0)                               
                     predict = model(x)
                     predicts = torch.cat((predicts, predict), 0)
                 
-            
             acc = get_accuracy(predicts, targets)
             logger.add('accuracy', 'val', acc, it)
             logging.info('Epoch {0}: validation accuracy {1}'.format(epoch_idx, acc))
