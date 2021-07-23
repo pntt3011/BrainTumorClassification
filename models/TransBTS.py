@@ -171,7 +171,7 @@ class FcBlock(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         
         self.fc = nn.Linear(out_channels * 1024, 1)
-        self.softmax = nn.Softmax(dim = 1)
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         x = self.conv1(x)
@@ -180,7 +180,7 @@ class FcBlock(nn.Module):
         x = x.flatten(start_dim=1)  
 
         x = self.fc(x)
-        x = self.softmax(x)
+        x = self.sigmoid(x)
 
         return x
 

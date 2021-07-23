@@ -22,4 +22,3 @@ training:
 
   num_ep: 1000
   epoch_save: 1
-  
