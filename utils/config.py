@@ -51,7 +51,7 @@ def load_config(args, unknown):
         config = update_config(config, unknown)
 
         config.training.exp_dir = args.load_exp
-        logging.ìnfo("=> Loading previous experiments in: {}".format(config.training.exp_dir))
+        logging.info("=> Loading previous experiments in: {}".format(config.training.exp_dir))
         
     else:
         config = load_yaml(args.config)
