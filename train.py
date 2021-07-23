@@ -64,7 +64,8 @@ def main(args):
     model.to(device)
 
     optimizer = torch.optim.Adam(
-        params=model.parameters(), lr=args.training.lr_param, betas=(0.9, 0.999)
+        params=model.parameters(), lr = args.training.lr_param, 
+        weight_decay = 1e-5, amsgrad = True
     )
 
     # Register modules to checkpoint
@@ -80,14 +81,6 @@ def main(args):
         only_use_keys=args.training.ckpt_only_use_keys)
     it = load_dict.get('global_step', -1)
     epoch_idx = load_dict.get('epoch_idx', 0)
-    
-    # build lr scheduler
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(
-        optimizer,
-        step_size=args.training.step_size,
-        gamma=args.training.lr_annual,
-        last_epoch = epoch_idx - 1
-    )
 
     # start training
     num_ep = args.training.num_ep
@@ -115,12 +108,14 @@ def main(args):
                 logger.add('learning_rates','model', optimizer.param_groups[0]['lr'], it=it)
                 logger.add('losses', 'training', loss.data.cpu().numpy().item(), it)
 
-            if (epoch_idx + 1) % 5 == 0:
+            #Save checkpoint
+            if (epoch_idx + 1) % args.training.epoch_save == 0:
                 checkpoint_io.save(
                     filename='{0:05d}.pt'.format(epoch_idx+1),
                     global_step=it, epoch_idx=epoch_idx)
-                
-            lr_scheduler.step()
+            
+            # Learning rate scheduler
+            adjust_learning_rate(optimizer, epoch_idx, num_ep, args.training.lr_param)
 
             # Validation
             targets = torch.empty([0, 1]).to(device)
@@ -144,6 +139,11 @@ def main(args):
             epoch_idx += 1
 
     logging.info('Training completed')        
+
+
+def adjust_learning_rate(optimizer, epoch, max_epoch, init_lr, power=0.9):
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = round(init_lr * np.power(1-(epoch) / max_epoch, power), 8)
 
 
 if __name__ == "__main__":

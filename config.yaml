@@ -2,8 +2,8 @@ expname: TransBTS
 device_ids: [0] # single gpu
 
 data:
-  data_dir: "/content/drive/MyDrive/BrainTumorClassification/train"
-  label: "/content/drive/MyDrive/BrainTumorClassification/train_labels.csv"
+  data_dir: "/content/drive/MyDrive/Data/train"
+  label: "/content/drive/MyDrive/Data/train_labels.csv"
   mode: "train"
 
 model:
@@ -15,12 +15,11 @@ training:
   batch_size: 4
   
   lr_param: 0.0002
-  step_size: 1
-  lr_annual: 0.9954
 
   ckpt_file: null
   ckpt_ignore_keys: []
   ckpt_only_use_keys: null
 
   num_ep: 1000
+  epoch_save: 5
   
